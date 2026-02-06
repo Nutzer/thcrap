@@ -85,6 +85,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "thcrap_x64_injector", "thcr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "thcrap_cs_lib", "libs\thcrap_cs_lib\thcrap_cs_lib.csproj", "{9E72079B-A115-40B8-9769-DBD22410A87B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "thcrap_krkr", "thcrap_krkr\thcrap_krkr.vcxproj", "{5BF6660A-501E-4E64-B2EB-B729381EABFB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32

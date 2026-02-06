@@ -1,0 +1,18 @@
+LIBRARY
+EXPORTS
+	thcrap_plugin_init	@1
+
+	; Script
+	; ------------
+	BP_patchtjs
+	BP_patchks
+	BP_string_free
+	script_mod_init
+	
+	; Image
+	; ------------
+	BP_patchimage
+	
+	; KRKR-specific detours
+	; --------------------
+	krkr_mod_detour
