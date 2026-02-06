@@ -517,6 +517,11 @@ EXPORTS
 	zip_open
 	zip_close
 
+	; SHA256
+	; -------------
+	sha256_calc
+	sha256_to_string
+
 	; 32 BIT ONLY EXPORTS
 
 	; JSON extensions

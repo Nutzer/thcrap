@@ -388,3 +388,15 @@ SHA256_HASH sha256_calc(const uint8_t data[], size_t length) {
     sha256_final(&sha256_ctx);
     return sha256_ctx.state;
 }
+
+void sha256_to_string(SHA256_HASH hash, sha256_str_t hash_str) {
+#if TH_X86
+    for (size_t i = 0; i < 8; i++) {
+        sprintf(hash_str + (i * 8), "%08x", _byteswap_ulong(hash.dwords[i]));
+    }
+#else
+    for (size_t i = 0; i < 4; i++) {
+        sprintf(hash_str + (i * 16), "%016llx", _byteswap_uint64(hash.qwords[i]));
+    }
+#endif
+}

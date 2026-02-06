@@ -111,16 +111,8 @@ game_version* identify_by_hash(const char *fn, size_t *file_size, json_t *versio
 			SHA256_HASH hash = sha256_calc(file_buffer, *file_size);
 			free(file_buffer);
 
-			char hash_str[65];
-#if TH_X86
-			for (size_t i = 0; i < 8; i++) {
-				sprintf(hash_str + (i * 8), "%08x", _byteswap_ulong(hash.dwords[i]));
-			}
-#else
-			for (size_t i = 0; i < 4; i++) {
-				sprintf(hash_str + (i * 16), "%016llx", _byteswap_uint64(hash.qwords[i]));
-			}
-#endif
+			sha256_str_t hash_str;
+			sha256_to_string(hash, hash_str);
 			json_t *id = json_object_get(json_hashes, hash_str);
 			return id ? new game_version(id) : nullptr;
 		}

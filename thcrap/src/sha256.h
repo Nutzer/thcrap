@@ -21,5 +21,7 @@ typedef union {
 		__m128i upper_simd;
 	};
 } SHA256_HASH;
+typedef char sha256_str_t[65];
 
 SHA256_HASH sha256_calc(const uint8_t data[], size_t length);
+void sha256_to_string(SHA256_HASH hash, sha256_str_t hash_str);
