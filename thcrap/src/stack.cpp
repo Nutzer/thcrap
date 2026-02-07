@@ -429,6 +429,23 @@ int stack_remove_if_unneeded(const char *patch_id)
 	return ret;
 }
 
+bool patch_is_base_patch(const patch_t *patch)
+{
+	return patch_file_exists(patch, "versions.js");
+}
+
+void stack_prune_base_patches()
+{
+	for (int i = 0; i < stack.size(); ++i) {
+		const patch_t* patch = &stack[i];
+		if (patch_is_base_patch(patch)) {
+			stack_remove_if_unneeded(patch->id);
+			--i;
+			continue;
+		}
+	}
+}
+
 void stack_free()
 {
 	for (patch_t &patch : stack) {

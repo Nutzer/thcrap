@@ -153,6 +153,12 @@ THCRAP_API int stack_remove_if_unneeded(const char *patch_id);
 
 THCRAP_API int stack_check_if_unneeded(const char* patch_id);
 
+// Check if patch is a base patch by looking for 'versions.js'
+THCRAP_API bool patch_is_base_patch(const patch_t* patch);
+
+// Remove all base patches which do not support the current game_id
+THCRAP_API void stack_prune_base_patches();
+
 // Clear the stack and free its patches
 THCRAP_API void stack_free();
 /// ------------
