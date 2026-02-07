@@ -381,6 +381,16 @@ void stack_print()
 				log_printf(" '%s'", patch.servers[i]);
 			}
 		}
+		bool print_supported_games = patch.supported_games != NULL;
+		log_print(print_supported_games ?
+			"\n  supported games:" :
+			"\n  supported games: all"
+		);
+		if (print_supported_games) {
+			for (size_t i = 0; patch.supported_games[i]; ++i) {
+				log_printf(" '%s'", patch.supported_games[i]);
+			}
+		}
 	}
 	log_print("\n");
 }
@@ -429,17 +439,18 @@ int stack_remove_if_unneeded(const char *patch_id)
 	return ret;
 }
 
-bool patch_is_base_patch(const patch_t *patch)
+bool patch_is_base_patch(const patch_t* patch)
 {
 	return patch_file_exists(patch, "versions.js");
 }
 
-void stack_prune_base_patches()
+void stack_prune_patches(const char *game_id)
 {
 	for (int i = 0; i < stack.size(); ++i) {
 		const patch_t* patch = &stack[i];
-		if (patch_is_base_patch(patch)) {
-			stack_remove_if_unneeded(patch->id);
+		bool is_unneded_base_patch = patch_is_base_patch(patch) && stack_check_if_unneeded(patch->id);
+		if (is_unneded_base_patch || !patch_game_supported(patch, game_id)) {
+			stack_remove_patch(patch->id);
 			--i;
 			continue;
 		}

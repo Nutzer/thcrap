@@ -314,7 +314,7 @@ int thcrap_init(const char *run_cfg)
 		json_decref(full_cfg);
 
 		// Game has been positively identified by hash or size, we can safely start pruning the patch stack
-		stack_prune_base_patches();
+		stack_prune_patches(runconfig_game_get());
 
 		oldbuild_show();
 	}
