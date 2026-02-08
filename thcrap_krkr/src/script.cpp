@@ -112,8 +112,8 @@ char *perform_patch(char *filename_full, char *content) {
 	}
 	json_t *strings = jsondata_game_get("strings.js");
 	
-
-	SHA256_HASH hash = sha256_calc((uint8_t*)content, strlen(content));
+	uintptr_t content_len = strlen(content);
+	SHA256_HASH hash = sha256_calc((uint8_t*)content, content_len);
 	sha256_str_t hash_str;
 	sha256_to_string(hash, hash_str);
 	json_t *patch = json_object_get(patch_index, hash_str);
@@ -162,9 +162,11 @@ char *perform_patch(char *filename_full, char *content) {
 	// Apply patches
 	// ----------
 	char *content_patched = strdup("");
+	uintptr_t content_patched_len = 0;
 	uintptr_t content_pos = 0;
-	auto add_patched_content = [&content_patched](const char *text, size_t length) {
-		content_patched = (char*)realloc(content_patched, strlen(content_patched) + length + 1);
+	auto add_patched_content = [&content_patched, &content_patched_len](const char *text, size_t length) {
+		content_patched_len += length;
+		content_patched = (char*)realloc(content_patched, content_patched_len + 1);
 		strncat(content_patched, text, length);
 	};
 
@@ -173,7 +175,7 @@ char *perform_patch(char *filename_full, char *content) {
 			log_printf("Overlapping patches @%u, skipping\n", p.start);
 			continue;
 		}
-		if (strlen(content) < p.end) {
+		if (content_len < p.end) {
 			log_printf("patch exceeds document @%u, skipping\n", p.start);
 			continue;
 		}
@@ -191,27 +193,27 @@ char *perform_patch(char *filename_full, char *content) {
 				text = string_offset + 1;
 				continue;
 			}
-
-			char *string_name = (char*)malloc(string_end - string_offset - 1);
-			memcpy(string_name, string_offset + 2, string_end - string_offset - 2);
-			string_name[string_end - string_offset - 2] = 0;
-			const char *string_rep = json_object_get_string(strings, string_name);
-			free(string_name);
-			if (string_rep == NULL) {
-				log_printf("String reference not found: %.*s\n", string_end - string_offset - 2, string_offset + 2);
+			size_t string_len = string_end - string_offset - 2;
+			VLA(char, string_name, string_len + 1);
+			memcpy(string_name, string_offset + 2, string_len);
+			string_name[string_len] = 0;
+			json_t *string_rep = json_object_get(strings, string_name);
+			VLA_FREE(string_name);
+			if (!json_is_string(string_rep)) {
+				log_printf("String reference not found: %.*s\n", string_len, string_offset + 2);
 				add_patched_content(text, string_offset - text + 1);
 				text = string_offset + 1;
 				continue;
 			}
 
 			add_patched_content(text, string_offset - text);
-			add_patched_content(string_rep, strlen(string_rep));
+			add_patched_content(json_string_value(string_rep), json_string_length(string_rep));
 			text = string_end + 1;
 		}
 		add_patched_content(text, strlen(text));
 		content_pos = p.end + 1;
 	}
-	add_patched_content(content + content_pos, strlen(content) - content_pos);
+	add_patched_content(content + content_pos, content_len - content_pos);
 
 	SAFE_FREE(filename_js);
 	return content_patched;
