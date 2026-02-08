@@ -67,7 +67,7 @@ void krkr_mod_detour(void)
 	// XXX: This just overrides the chains set up in win32_utf8.
 	//      Kirikiri sends some messages that crash, needs to be investigated further.
 	detour_chain("user32.dll", 1, "DefWindowProcA", DefWindowProcA, NULL,
-								  "CreateWindowExA", CreateWindowExU_safe, NULL);
+								  "CreateWindowExA", CreateWindowExU_safe, NULL, NULL);
 
 	// XXX: The internal parser of Kirikiri expects UTF16 input, and files are encoded in shift-jis or utf16.
 	//      At some point patching the parser would be cleaner, but this is the easiest solution.
