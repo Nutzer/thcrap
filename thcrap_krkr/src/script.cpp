@@ -141,7 +141,7 @@ char *perform_patch(char *filename_full, char *content) {
 	std::vector<patch_t> patches;
 	const char *key;
 	json_t const *value;
-	json_object_foreach(patch, key, value) {
+	json_object_foreach_fast(patch, key, value) {
 		if (!json_is_string(value) || strlen(key) < 4 || *key != '@') {
 			log_printf("invalid patch key: %s\n", key);
 			continue;
