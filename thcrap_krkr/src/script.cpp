@@ -7,13 +7,14 @@
   * Breakpoints for patching script and scenario files.
   */
 
-#include <cstring>
 #include <map>
+#include <string.h>
 #include <thcrap.h>
 
 #include "krkr_util.hpp"
 #include <algorithm>
 #include <sha256.h>
+#include <mutex>
 
 char *perform_patch(char *filename_full, char *content);
 
@@ -22,9 +23,12 @@ char *perform_patch(char *filename_full, char *content);
 //   When we swap in patched strings, we need to swap them back
 //   before the original gets free'd or bad things will happen.
 std::map<wchar_t*, wchar_t*> patch_replacements;
+std::mutex patch_replacements_lock;
 
 void patch_string(krkr_string_t *string, char *patch_utf8)
 {
+	std::scoped_lock lock{ patch_replacements_lock };
+
 	wchar_t *patch_utf16 = (wchar_t*)utf8_to_utf16(patch_utf8);
 	patch_replacements.emplace(patch_utf16, string->_data);
 	string->_data = patch_utf16;
@@ -32,6 +36,8 @@ void patch_string(krkr_string_t *string, char *patch_utf8)
 
 void unpatch_string(krkr_string_t *string)
 {
+	std::scoped_lock lock{ patch_replacements_lock };
+
 	auto it = patch_replacements.find(string->_data);
 	if (it != patch_replacements.end()) {
 		string->_data = it->second;
