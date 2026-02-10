@@ -4,14 +4,13 @@ EXPORTS
 
 	; Script
 	; ------------
-	BP_patchtjs
-	BP_patchks
+	BP_patch_script
 	BP_string_free
 	script_mod_init
 	
 	; Image
 	; ------------
-	BP_patchimage
+	BP_patch_image
 	
 	; KRKR-specific detours
 	; --------------------

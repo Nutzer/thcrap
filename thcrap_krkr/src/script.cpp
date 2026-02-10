@@ -45,12 +45,12 @@ void unpatch_string(krkr_string_t *string)
 	}
 }
 
-size_t BP_patchtjs(x86_reg_t *regs, json_t *bp_info)
+size_t BP_patch_script(x86_reg_t *regs, json_t *bp_info)
 {
-	// This breakpoint hooks into the tjs parser, after the script has been read.
+	// This breakpoint hooks into the parser, after the script has been read.
 
-	krkr_string_t *filename_str = *(krkr_string_t**)((uintptr_t)regs->ebp - 0x14);
-	krkr_string_t *content_str = *(krkr_string_t**)((uintptr_t)regs->ebp - 0xc);
+	krkr_string_t* filename_str = *(krkr_string_t**)json_object_get_pointer(bp_info, regs, "filename");
+	krkr_string_t* content_str = *(krkr_string_t**)json_object_get_pointer(bp_info, regs, "content");
 
 	char *filename = krkr_string_to_utf8(*filename_str);
 	char *content = krkr_string_to_utf8(*content_str);
@@ -61,25 +61,6 @@ size_t BP_patchtjs(x86_reg_t *regs, json_t *bp_info)
 	free(filename);
 	free(content);
 
-	*(uint16_t*)(regs->ebp - 0x30) = 0x20; // Breakpoint overrides this instruction
-	return 1;
-}
-
-size_t BP_patchks(x86_reg_t *regs, json_t *bp_info)
-{
-	// This breakpoint hooks into the ks parser, after the script has been read.
-
-	krkr_string_t *filename_str = **(krkr_string_t***)((uintptr_t)regs->esp + 0x14);
-	krkr_string_t *content_str = *(krkr_string_t**)((uintptr_t)regs->ebp - 0x4);
-
-	char *filename = krkr_string_to_utf8(*filename_str);
-	char *content = krkr_string_to_utf8(*content_str);
-	char *patched = perform_patch(filename, content);
-	patch_string(content_str, patched);
-
-	free(patched);
-	free(filename);
-	free(content);
 	return 1;
 }
 

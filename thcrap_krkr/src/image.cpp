@@ -14,7 +14,7 @@
 #include "png_ex.h"
 #include "krkr_util.hpp"
 
-size_t BP_patchimage(x86_reg_t *regs, json_t *bp_info)
+size_t BP_patch_image(x86_reg_t *regs, json_t *bp_info)
 {
 	// This breakpoints hooks into the Layer.loadImages()-function
 	// after the images have been loaded, and patches the raw RGBA-data.
