@@ -6,7 +6,6 @@ EXPORTS
 	; ------------
 	BP_patch_script
 	BP_string_free
-	script_mod_init
 	
 	; Image
 	; ------------

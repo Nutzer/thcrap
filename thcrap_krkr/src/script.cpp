@@ -75,7 +75,6 @@ size_t BP_string_free(x86_reg_t *regs, json_t *bp_info)
 	return 1;
 }
 
-
 char *perform_patch(char *filename_full, char *content) {
 	// TJS paths in Kirikiri internally use the schema path/to/archive.xp3>local/path
 	// We don't care which archive is used, so we need to extract the local path part.
@@ -91,27 +90,34 @@ char *perform_patch(char *filename_full, char *content) {
 		jsondata_game_add(filename_js);
 		patch_index = jsondata_game_get(filename_js);
 	}
-	json_t *strings = jsondata_game_get("strings.js");
-	
-	uintptr_t content_len = strlen(content);
-	SHA256_HASH hash = sha256_calc((uint8_t*)content, content_len);
-	sha256_str_t hash_str;
-	sha256_to_string(hash, hash_str);
-	json_t *patch = json_object_get(patch_index, hash_str);
 
-	static bool INCOMPATIBLE_WARNING_SHOWN = false;
-	if (patch_index && !patch && !INCOMPATIBLE_WARNING_SHOWN) {
-		INCOMPATIBLE_WARNING_SHOWN = true;
-		log_error_mboxf("Unsupported game version",
-			"This version of the game is not supported by this patch. "
-			"Running the game in this state will result in missing features / translations. "
-			"If you have a static english patch installed, please uninstall it and try again.\n"
-			"Filename: %s\n"
-			"Hash: %s\n",
-			fname_local, hash_str
-		);
+	const char *strings_js = json_string_value(json_object_get(patch_index, "strings"));
+	json_t* strings = NULL;
+	if (strings_js) {
+		strings = jsondata_game_get(strings_js);
+		if (!strings) {
+			jsondata_game_add(strings_js);
+			strings = jsondata_game_get(strings_js);
+		}
 	}
+	uintptr_t content_len = strlen(content);
 
+	json_t* patch_hash = json_object_get(patch_index, "hash");
+	if (patch_hash && json_is_string(patch_hash)) {
+		SHA256_HASH hash = sha256_calc((uint8_t*)content, content_len);
+		sha256_str_t hash_str;
+		sha256_to_string(hash, hash_str);
+		if (0 != strcmp(hash_str, json_string_value(patch_hash))) {
+			log_error_mboxf("Unsupported game version",
+				"This version of the game is not supported by this patch. "
+				"Running the game in this state will result in missing features / translations. "
+				"If you have a static english patch installed, please uninstall it and try again.\n"
+				"Filename: %s\n"
+				"Hash: %s\n",
+				fname_local, hash_str
+			);
+		}
+	}
 	// Collect patches from jdiff and sort them by start byte.
 	// Patches are in the format @start_byte,end_byte
 	// ----------
@@ -119,23 +125,40 @@ char *perform_patch(char *filename_full, char *content) {
 		uintptr_t start, end;
 		const char *rep;
 	};
+	json_t* patch = json_object_get(patch_index, "patches");
 	std::vector<patch_t> patches;
 	const char *key;
-	json_t const *value;
-	json_object_foreach_fast(patch, key, value) {
-		if (!json_is_string(value) || strlen(key) < 4 || *key != '@') {
-			log_printf("invalid patch key: %s\n", key);
+	const json_t *value;
+    json_object_foreach_fast(patch, key, value) {
+		json_t* patch_start = json_object_get(value, "start");
+		json_t* patch_end = json_object_get(value, "end");
+		json_t* patch_content = json_object_get(value, "content");
+		json_t* patch_expected = json_object_get(value, "expected");
+		if (!json_is_number(patch_start)
+			|| !json_is_string(patch_content)
+			|| (patch_end && !json_is_number(patch_end))
+			|| (patch_expected && !json_is_string(patch_expected))) {
+			char *dump = json_dumps(value, 0);
+			log_printf("invalid patch: %s\n", dump);
+			free(dump);
 			continue;
 		}
-		patch_t res;
-		char *cont;
-		res.start = strtoull(key + 1, &cont, 10);
-		if (*cont != ',') {
-			log_printf("invalid patch key: %s\n", key);
+		struct patch_t res = {
+			json_number_value(patch_start),
+			json_number_value(patch_end ? patch_end : patch_start),
+			json_string_value(patch_content),
+		};
+		if (res.start >= content_len || res.end < res.start || res.end >= content_len) {
+			log_printf("invalid patch locations: %i-%i\n", res.start, res.end);
 			continue;
 		}
-		res.end = strtoull(cont + 1, NULL, 10);
-		res.rep = json_string_value(value);
+		if (patch_expected) {
+			const char *expected = json_string_value(patch_expected);
+			if (0 != strncmp(expected, content + res.start, res.end - res.start)) {
+				log_printf("invalid patch: expected [%s], got [%.*s]\n", expected, res.end - res.start, content + res.start);
+				continue;
+			}
+		}
 		patches.push_back(res);
 	}
 	std::sort(patches.begin(), patches.end(), [](auto& a, auto& b) { return a.start < b.start; });
@@ -154,10 +177,6 @@ char *perform_patch(char *filename_full, char *content) {
 	for (auto& p : patches) {
 		if (content_pos > p.start) {
 			log_printf("Overlapping patches @%u, skipping\n", p.start);
-			continue;
-		}
-		if (content_len < p.end) {
-			log_printf("patch exceeds document @%u, skipping\n", p.start);
 			continue;
 		}
 		add_patched_content(content + content_pos, p.start - content_pos);
@@ -192,15 +211,10 @@ char *perform_patch(char *filename_full, char *content) {
 			text = string_end + 1;
 		}
 		add_patched_content(text, strlen(text));
-		content_pos = p.end + 1;
+		content_pos = p.end;
 	}
 	add_patched_content(content + content_pos, content_len - content_pos);
 
 	SAFE_FREE(filename_js);
 	return content_patched;
-}
-
-void script_mod_init(void)
-{
-	jsondata_game_add("strings.js");
 }
