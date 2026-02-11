@@ -529,7 +529,7 @@ TH_CALLER_FREE static constexpr TH_FORCEINLINE auto alloc_str(StrsT&&... strs) {
 
 #define FORMAT_VLA_STR(type, name, format, ...) \
     size_t name##_len = snprintf(NULL, 0, (format), __VA_ARGS__); \
-    VLA(type, name, name##_len); \
+    VLA(type, name, name##_len + 1); \
     (void)sprintf(name, (format), __VA_ARGS__)
 
 }
