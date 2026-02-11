@@ -84,12 +84,13 @@ char *perform_patch(char *filename_full, char *content) {
 		fname_local = archive_path_end + 1;
 	}
 
-	char *filename_js = strdup_cat(fname_local, ".jdiff");
+	FORMAT_VLA_STR(char, filename_js, "%s.jdiff", fname_local);
 	json_t *patch_index = jsondata_game_get(filename_js);
 	if (!patch_index) {
 		jsondata_game_add(filename_js);
 		patch_index = jsondata_game_get(filename_js);
 	}
+	VLA_FREE(filename_js);
 
 	const char *strings_js = json_string_value(json_object_get(patch_index, "strings"));
 	json_t* strings = NULL;
@@ -215,6 +216,5 @@ char *perform_patch(char *filename_full, char *content) {
 	}
 	add_patched_content(content + content_pos, content_len - content_pos);
 
-	SAFE_FREE(filename_js);
 	return content_patched;
 }
