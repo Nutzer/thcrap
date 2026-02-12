@@ -19,23 +19,26 @@ size_t BP_patch_image(x86_reg_t *regs, json_t *bp_info)
 	// This breakpoints hooks into the Layer.loadImages()-function
 	// after the images have been loaded, and patches the raw RGBA-data.
 
-	*(uint8_t*)(regs->edx + 0x140) = 1; // Breakpoint overrides this instruction.
+	uintptr_t path_ptr = (uintptr_t)json_object_get_pointer(bp_info, regs, "filename");
+	uintptr_t image_ptr = (uintptr_t)json_object_get_pointer(bp_info, regs, "image");
 
-	if (regs->ebx < 0x1000) {
+
+	*(uint8_t*)(image_ptr + 0x140) = 1; // Breakpoint overrides this instruction.
+
+	if (path_ptr < 0x1000) {
 		// XXX: There is one case in gtk4.exe where this happens.
 		return 1;
 	}
 
-	krkr_string_t *path_str = *(krkr_string_t**)((uintptr_t)regs->ebx);
-	krkr_layer_image_t layer = krkr_parse_layer(regs->edx);
+	krkr_string_t *path_str = *(krkr_string_t**)path_ptr;
+	krkr_layer_image_t layer = krkr_parse_layer(image_ptr);
 
 	char *path = krkr_string_to_utf8(*path_str);
 	char *fname = strdup_cat(path, strstr(path, ".png") ? "" : ".png");
-	log_printf("image: %s [%i/%i]\n", fname, layer.width, layer.height);
 	char* *chain = resolve_chain_game(fname);
 	stack_chain_iterate_t sci;
 	sci.fn = NULL;
-	while (stack_chain_iterate(&sci, chain, SCI_FORWARDS)) {
+	while (stack_chain_iterate(&sci, chain, SCI_BACKWARDS)) {
 		png_image_ex png = {};
 
 		png.img.version = PNG_IMAGE_VERSION;
@@ -74,6 +77,7 @@ size_t BP_patch_image(x86_reg_t *regs, json_t *bp_info)
 						(void*)((uintptr_t)png.buf + ((layer.height - row - 1)  *stride)),
 						stride);
 				}
+				break;
 			}
 			free(png.buf);
 		}

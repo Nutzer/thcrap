@@ -68,7 +68,7 @@ size_t BP_string_free(x86_reg_t *regs, json_t *bp_info)
 {
 	// This breakpoint hooks into the code that handles string cleanup
 
-	krkr_string_t *str = (krkr_string_t*)((uintptr_t)regs->ebx);
+	krkr_string_t *str = (krkr_string_t*)json_object_get_pointer(bp_info, regs, "string");
 
 	unpatch_string(str);
 
