@@ -34,8 +34,8 @@ size_t BP_patch_image(x86_reg_t *regs, json_t *bp_info)
 	krkr_layer_image_t layer = krkr_parse_layer(image_ptr);
 
 	char *path = krkr_string_to_utf8(*path_str);
-	char *fname = strdup_cat(path, strstr(path, ".png") ? "" : ".png");
-	char* *chain = resolve_chain_game(fname);
+	FORMAT_VLA_STR(char, fname, "%s.%s", path, strstr(path, ".png") ? "" : ".png");
+	char **chain = resolve_chain_game(fname);
 	stack_chain_iterate_t sci;
 	sci.fn = NULL;
 	while (stack_chain_iterate(&sci, chain, SCI_BACKWARDS)) {
@@ -84,7 +84,7 @@ size_t BP_patch_image(x86_reg_t *regs, json_t *bp_info)
 	}
 
 	chain_free(chain);
-	free(fname);
+	VLA_FREE(fname);
 	free(path);
 
 	return 1;
